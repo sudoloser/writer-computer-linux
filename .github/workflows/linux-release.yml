@@ -144,13 +144,10 @@ jobs:
             rpm libfuse2 patchelf
 
       - name: Set up vp toolchain
-        uses: voidzero-dev/setup-vp@v1
+        uses: voidzero-dev/setup-vp@v1.20.0
         with:
+          working-directory: src
           cache: true
-
-      - name: Install frontend dependencies
-        working-directory: ${{ github.workspace }}/src
-        run: vp install
 
       - name: Build bundles (deb, rpm, appimage)
         working-directory: ${{ github.workspace }}/src/apps/desktop

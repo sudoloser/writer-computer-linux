@@ -141,7 +141,7 @@ jobs:
             build-essential curl wget file \
             libxdo-dev libssl-dev \
             libayatana-appindicator3-dev librsvg2-dev \
-            rpm libfuse2 patchelf
+            rpm libfuse2 patchelf xdg-utils
 
       - name: Set up vp toolchain
         uses: voidzero-dev/setup-vp@v1.20.0

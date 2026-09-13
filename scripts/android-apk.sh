@@ -52,7 +52,7 @@ fi
 # --- Build debug APK ---
 echo "Building debug APK..."
 cd "$ROOT_DIR/apps/desktop"
-npx tauri android build -- --debug --target aarch64
+npx tauri android build
 cd "$ROOT_DIR"
 
 # --- Locate output ---

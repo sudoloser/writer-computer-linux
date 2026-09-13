@@ -55,6 +55,7 @@ jobs:
       - name: Apply Android support patch
         working-directory: ${{ github.workspace }}/src
         run: |
+          mkdir -p patches
           cp "${{ github.workspace }}/fork/patches/android-support.patch" patches/
           git apply patches/android-support.patch
 

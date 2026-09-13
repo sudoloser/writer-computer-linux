@@ -8,13 +8,17 @@ JSON, while this script merges by key and is idempotent (safe to re-run).
 Changes:
   1. bundle.targets          -> ["deb", "rpm", "appimage"] (was "all", which
      would also try macOS/Windows-only bundles and updater signing flows)
-  2. bundle.category         -> "Utility" (required-ish metadata for deb/rpm
-     desktop entries; only set when missing)
-  3. bundle.shortDescription / bundle.longDescription defaults (lintian/rpm
-     warnings without them; only set when missing)
-  4. bundle.linux            -> maintainer/vendor + deb/rpm runtime depends
-     for x86_64 and aarch64 runners (Ubuntu 22.04, webkit2gtk-4.1)
-  5. app.windows[0]          -> drop macOS-only keys (windowEffects,
+  2. bundle.category         -> "Utility" (desktop-entry category for the
+     generated .desktop file; only set when missing)
+  3. bundle.shortDescription / bundle.longDescription defaults
+     (deb/rpm package descriptions; only set when missing)
+  4. bundle.publisher        -> "Writer Computer" (maps to the Maintainer
+     field of .deb packages; only set when missing)
+  5. bundle.linux            -> deb/rpm runtime depends for x86_64 and
+     aarch64 runners (Ubuntu 22.04, webkit2gtk-4.1). Note bundle.linux
+     accepts ONLY appimage/deb/rpm subsections — anything else fails
+     `tauri build` with "Additional properties are not allowed".
+  6. app.windows[0]          -> drop macOS-only keys (windowEffects,
      trafficLightPosition) and set transparent=false so the window works
      under plain X11/Wayland compositors. Updater + fileAssociations are
      left untouched.
@@ -36,24 +40,17 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONF = REPO_ROOT / "apps" / "desktop" / "src-tauri" / "tauri.conf.json"
 
-LINUX_BUNDLE = {
-    "maintainer": "Writer Computer <maintainers@example.com>",
-    "vendor": "Writer Computer",
-    "description": "A local-first markdown editor for plain-text workflows.",
-    "deb": {
-        "depends": [
-            "libwebkit2gtk-4.1-0",
-            "libgtk-3-0",
-            "libayatana-appindicator3-1 | libappindicator3-1",
-        ],
-    },
-    "rpm": {
-        "depends": [
-            "webkit2gtk4.1",
-            "gtk3",
-            "libappindicator-gtk3",
-        ],
-    },
+LINUX_DEPENDS = {
+    "deb": [
+        "libwebkit2gtk-4.1-0",
+        "libgtk-3-0",
+        "libayatana-appindicator3-1 | libappindicator3-1",
+    ],
+    "rpm": [
+        "webkit2gtk4.1",
+        "gtk3",
+        "libappindicator-gtk3",
+    ],
 }
 
 MAC_ONLY_WINDOW_KEYS = ("windowEffects", "trafficLightPosition")
@@ -91,17 +88,17 @@ def patch(conf_path: Path) -> bool:
         changed = True
 
     linux = bundle.setdefault("linux", {})
-    for key, value in LINUX_BUNDLE.items():
-        if key in ("deb", "rpm"):
-            section = linux.setdefault(key, {})
-            depends = section.setdefault("depends", [])
-            for dep in value["depends"]:
-                if dep not in depends:
-                    depends.append(dep)
-                    changed = True
-        elif linux.get(key) != value:
-            linux[key] = value
-            changed = True
+    for key, depends in LINUX_DEPENDS.items():
+        section = linux.setdefault(key, {})
+        existing = section.setdefault("depends", [])
+        for dep in depends:
+            if dep not in existing:
+                existing.append(dep)
+                changed = True
+
+    if not bundle.get("publisher"):
+        bundle["publisher"] = "Writer Computer"
+        changed = True
 
     windows = (conf.get("app") or {}).get("windows") or []
     if windows:

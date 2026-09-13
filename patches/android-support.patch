@@ -1,0 +1,100 @@
+diff --git a/apps/desktop/src-tauri/Cargo.toml b/apps/desktop/src-tauri/Cargo.toml
+index 3d203cf..e88cc39 100644
+--- a/apps/desktop/src-tauri/Cargo.toml
++++ b/apps/desktop/src-tauri/Cargo.toml
+@@ -32,17 +32,19 @@ uuid = { version = "1", features = ["v4"] }
+ tokio = { version = "1", features = ["fs", "sync"] }
+ parking_lot = "0.12"
+ thiserror = "2"
+-trash = "5"
+ base64 = "0.22"
+ tauri-plugin-store = "2.4.2"
+-tauri-plugin-updater = "2"
+-tauri-plugin-single-instance = "2"
+ tauri-plugin-webdriver = { version = "0.2", optional = true }
+ # Telemetry transport. Feature set mirrors tauri-plugin-updater's so the
+ # dependency graph does not grow — both are already resolved in Cargo.lock.
+ reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+ rustls = { version = "0.23", default-features = false, features = ["ring"] }
+ 
++[target.'cfg(desktop)'.dependencies]
++trash = "5"
++tauri-plugin-updater = "2"
++tauri-plugin-single-instance = "2"
++
+ [target.'cfg(target_os = "macos")'.dependencies]
+ objc2 = "0.6.4"
+ 
+diff --git a/apps/desktop/src-tauri/src/commands/fs.rs b/apps/desktop/src-tauri/src/commands/fs.rs
+index cd286f7..edb9187 100644
+--- a/apps/desktop/src-tauri/src/commands/fs.rs
++++ b/apps/desktop/src-tauri/src/commands/fs.rs
+@@ -664,7 +664,14 @@ pub fn delete_entry_impl(path: &str) -> Result<(), AppError> {
+     if !entry_path.exists() {
+         return Err(AppError::NotFound(path.to_string()));
+     }
+-    trash::delete(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
++    #[cfg(desktop)]
++    {
++        trash::delete(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
++    }
++    #[cfg(not(desktop))]
++    {
++        std::fs::remove_file(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
++    }
+     Ok(())
+ }
+ 
+diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
+index 30cc5cd..01c15a9 100644
+--- a/apps/desktop/src-tauri/src/lib.rs
++++ b/apps/desktop/src-tauri/src/lib.rs
+@@ -473,14 +473,16 @@ fn handle_single_instance(app: &tauri::AppHandle, argv: Vec<String>) {
+ #[cfg_attr(mobile, tauri::mobile_entry_point)]
+ pub fn run() {
+     let builder = tauri::Builder::default()
+-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+-            handle_single_instance(app, argv);
+-        }))
+         .plugin(tauri_plugin_opener::init())
+         .plugin(tauri_plugin_dialog::init())
+         .plugin(tauri_plugin_clipboard_manager::init())
+         .plugin(tauri_plugin_store::Builder::default().build());
+ 
++    #[cfg(desktop)]
++    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
++        handle_single_instance(app, argv);
++    }));
++
+     // Embed a W3C WebDriver server when built with `--features e2e` so the
+     // local E2E suite can drive the WKWebView via `tauri-webdriver`. Never
+     // enabled in release builds shipped to users.
+@@ -513,7 +515,7 @@ pub fn run() {
+             // On macOS, `open -a Writer /path` delivers the path via
+             // RunEvent::Opened, not argv. On Linux/Windows the path
+             // arrives through argv (or the single-instance plugin).
+-            #[cfg(not(target_os = "macos"))]
++            #[cfg(all(desktop, not(target_os = "macos")))]
+             {
+                 let args: Vec<String> = std::env::args().collect();
+                 if args.len() > 1 {
+diff --git a/apps/desktop/src-tauri/tauri.conf.json b/apps/desktop/src-tauri/tauri.conf.json
+index 6caffe4..0c9a5d9 100644
+--- a/apps/desktop/src-tauri/tauri.conf.json
++++ b/apps/desktop/src-tauri/tauri.conf.json
+@@ -61,7 +61,14 @@
+       "icons/128x128@2x.png",
+       "icons/icon.icns",
+       "icons/icon.ico"
+-    ]
++    ],
++    "android": {
++      "minSdkVersion": 24,
++      "versionCode": 600
++    },
++    "category": "Utility",
++    "shortDescription": "A local-first markdown editor.",
++    "longDescription": "Writer is a local-first markdown editor for plain-text workflows such as Obsidian vaults, docs repos, and personal wikis."
+   },
+   "plugins": {
+     "updater": {

@@ -61,7 +61,14 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "android": {
+      "minSdkVersion": 24,
+      "versionCode": 600
+    },
+    "category": "Utility",
+    "shortDescription": "A local-first markdown editor.",
+    "longDescription": "Writer is a local-first markdown editor for plain-text workflows such as Obsidian vaults, docs repos, and personal wikis."
   },
   "plugins": {
     "updater": {

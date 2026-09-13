@@ -664,7 +664,14 @@ pub fn delete_entry_impl(path: &str) -> Result<(), AppError> {
     if !entry_path.exists() {
         return Err(AppError::NotFound(path.to_string()));
     }
-    trash::delete(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
+    #[cfg(desktop)]
+    {
+        trash::delete(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
+    }
+    #[cfg(not(desktop))]
+    {
+        std::fs::remove_file(&entry_path).map_err(|e| AppError::Io(e.to_string()))?;
+    }
     Ok(())
 }
 

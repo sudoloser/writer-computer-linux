@@ -1,0 +1,110 @@
+# Android debug APK build for Writer.
+#
+# Builds an unsigned debug APK from upstream + android-support.patch.
+# No signing, no AAB — just a debug APK you can install with `adb install`.
+
+name: android-debug
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "Upstream tag to build (empty = latest release)"
+        required: false
+        default: ""
+      upstream_repo:
+        description: "Upstream repository"
+        required: false
+        default: "joelbqz/writer-computer"
+
+env:
+  UPSTREAM_REPO: ${{ inputs.upstream_repo || 'joelbqz/writer-computer' }}
+  CARGO_TERM_COLOR: always
+  JAVA_VERSION: "17"
+  NDK_VERSION: "27.2.12479018"
+
+jobs:
+  build:
+    name: debug apk (aarch64)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out fork (patches + scripts)
+        uses: actions/checkout@v4
+        with:
+          path: fork
+
+      - name: Resolve upstream tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.upstream_tag }}
+        run: |
+          TAG="${INPUT_TAG}"
+          if [ -z "$TAG" ]; then
+            TAG="$(gh api "repos/$UPSTREAM_REPO/releases/latest" --jq .tag_name)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Check out pristine upstream at tag
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ steps.tag.outputs.tag }}
+          path: src
+
+      - name: Apply Android support patch
+        working-directory: ${{ github.workspace }}/src
+        run: |
+          cp "${{ github.workspace }}/fork/patches/android-support.patch" patches/
+          git apply patches/android-support.patch
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;${{ env.NDK_VERSION }}"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10
+
+      - name: Set up vp toolchain
+        uses: voidzero-dev/setup-vp@v1.20.0
+        with:
+          working-directory: src
+          cache: true
+
+      - name: Initialize Android project
+        working-directory: ${{ github.workspace }}/src/apps/desktop
+        run: npx tauri android init
+
+      - name: Build debug APK
+        working-directory: ${{ github.workspace }}/src/apps/desktop
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ env.NDK_VERSION }}
+        run: npx tauri android build -- --debug --target aarch64
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: writer-debug.apk
+          path: src/apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

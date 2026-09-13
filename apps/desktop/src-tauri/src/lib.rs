@@ -473,13 +473,15 @@ fn handle_single_instance(app: &tauri::AppHandle, argv: Vec<String>) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            handle_single_instance(app, argv);
-        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_store::Builder::default().build());
+
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        handle_single_instance(app, argv);
+    }));
 
     // Embed a W3C WebDriver server when built with `--features e2e` so the
     // local E2E suite can drive the WKWebView via `tauri-webdriver`. Never
@@ -513,7 +515,7 @@ pub fn run() {
             // On macOS, `open -a Writer /path` delivers the path via
             // RunEvent::Opened, not argv. On Linux/Windows the path
             // arrives through argv (or the single-instance plugin).
-            #[cfg(not(target_os = "macos"))]
+            #[cfg(all(desktop, not(target_os = "macos")))]
             {
                 let args: Vec<String> = std::env::args().collect();
                 if args.len() > 1 {

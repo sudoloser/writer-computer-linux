@@ -21,8 +21,9 @@ index 6caffe4..a033f1e 100644
    "bundle": {
      "active": true,
 -    "targets": "all",
+-    "createUpdaterArtifacts": true,
 +    "targets": ["deb", "rpm", "appimage"],
-     "createUpdaterArtifacts": true,
++    "createUpdaterArtifacts": false,
      "macOS": {
        "infoPlist": "Info.plist",
 @@ -61,7 +56,23 @@

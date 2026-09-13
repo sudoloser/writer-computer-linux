@@ -7,18 +7,21 @@ JSON, while this script merges by key and is idempotent (safe to re-run).
 
 Changes:
   1. bundle.targets          -> ["deb", "rpm", "appimage"] (was "all", which
-     would also try macOS/Windows-only bundles and updater signing flows)
-  2. bundle.category         -> "Utility" (desktop-entry category for the
+     would also try macOS/Windows-only bundles)
+  2. bundle.createUpdaterArtifacts -> false (fork releases never feed the
+     in-app updater, which points at upstream latest.json, so skip the
+     TAURI_SIGNING_PRIVATE_KEY flow entirely and build unsigned)
+  3. bundle.category         -> "Utility" (desktop-entry category for the
      generated .desktop file; only set when missing)
-  3. bundle.shortDescription / bundle.longDescription defaults
+  4. bundle.shortDescription / bundle.longDescription defaults
      (deb/rpm package descriptions; only set when missing)
-  4. bundle.publisher        -> "Writer Computer" (maps to the Maintainer
+  5. bundle.publisher        -> "Writer Computer" (maps to the Maintainer
      field of .deb packages; only set when missing)
-  5. bundle.linux            -> deb/rpm runtime depends for x86_64 and
+  6. bundle.linux            -> deb/rpm runtime depends for x86_64 and
      aarch64 runners (Ubuntu 22.04, webkit2gtk-4.1). Note bundle.linux
      accepts ONLY appimage/deb/rpm subsections — anything else fails
      `tauri build` with "Additional properties are not allowed".
-  6. app.windows[0]          -> drop macOS-only keys (windowEffects,
+  7. app.windows[0]          -> drop macOS-only keys (windowEffects,
      trafficLightPosition) and set transparent=false so the window works
      under plain X11/Wayland compositors. Updater + fileAssociations are
      left untouched.
@@ -69,6 +72,10 @@ def patch(conf_path: Path) -> bool:
     changed = False
 
     bundle = conf.setdefault("bundle", {})
+
+    if bundle.get("createUpdaterArtifacts") is not False:
+        bundle["createUpdaterArtifacts"] = False
+        changed = True
 
     if bundle.get("targets") != ["deb", "rpm", "appimage"]:
         bundle["targets"] = ["deb", "rpm", "appimage"]

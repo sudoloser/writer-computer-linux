@@ -149,32 +149,16 @@ jobs:
           working-directory: src
           cache: true
 
-      - name: Validate updater signing key
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
-            echo "No signing key configured — building unsigned. Manual installs (deb/rpm/AppImage/tar.gz) are unaffected; only in-app updates would need a signature."
-          elif ! printf '%s\n' "$TAURI_SIGNING_PRIVATE_KEY" | head -n 1 | grep -q '^untrusted comment:'; then
-            echo "::error::TAURI_SIGNING_PRIVATE_KEY is set but is not a minisign secret key. It must be the FULL contents of the .key file from 'tauri signer generate' (first line 'untrusted comment: ...', second line the key) — not just the base64 line and not the .pub file. Either fix the secret or delete it to build unsigned."
-            exit 1
-          else
-            # Export only when valid: tauri tries to decode even an empty
-            # TAURI_SIGNING_PRIVATE_KEY and fails, while an unset var skips
-            # signing cleanly — so the build step below sets no env itself.
-            echo "Signing key format OK — signing enabled."
-            {
-              echo "TAURI_SIGNING_PRIVATE_KEY<<SIGNING_KEY_EOF"
-              printf '%s\n' "$TAURI_SIGNING_PRIVATE_KEY"
-              echo "SIGNING_KEY_EOF"
-              echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
-            } >> "$GITHUB_ENV"
-          fi
-
       - name: Build bundles (deb, rpm, appimage)
         working-directory: ${{ github.workspace }}/src/apps/desktop
-        run: vp exec tauri build --bundles deb,rpm,appimage ${{ matrix.rust_host }}
+        run: |
+          # Linux fork builds are always unsigned: the in-app updater points
+          # at upstream's latest.json, so signed artifacts would be dead
+          # weight. createUpdaterArtifacts=false skips the signing flow
+          # entirely — tauri fails on even an empty TAURI_SIGNING_PRIVATE_KEY
+          # when updater artifacts are enabled, so ensure unset (not empty).
+          unset TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          vp exec tauri build --bundles deb,rpm,appimage ${{ matrix.rust_host }} --config '{"bundle":{"createUpdaterArtifacts":false}}'
 
       - name: Pack generic tarball for Arch and other distros
         working-directory: ${{ github.workspace }}/src

@@ -10,6 +10,7 @@ import { useOpenDrop } from "./hooks/use-open-drop";
 import "./lib/global-recents";
 import "./lib/standalone-watch";
 import "./App.css";
+import "./android.css";
 
 function App() {
   const isStartupResolved = useIsStartupResolved();

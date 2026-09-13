@@ -8,6 +8,9 @@ import { WelcomeScreen } from "./welcome";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useWorkspaceChromeMode, useWorkspaceRoot } from "@/hooks/use-workspace";
 import { resolveAppView } from "@/lib/app-view";
+import { isAndroid } from "@/lib/platform";
+
+const IS_ANDROID = isAndroid();
 
 function clampSidebarWidth(width: number, maxSidebarWidth: number) {
   return Math.max(220, Math.min(maxSidebarWidth, Math.round(width)));
@@ -20,8 +23,43 @@ export function AppLayout() {
   if (appView === "compact-file") {
     return <CompactFileLayout />;
   }
+  if (IS_ANDROID) {
+    return <AndroidLayout showWelcome={appView === "workspace-welcome"} />;
+  }
 
   return <WorkspaceLayout showWelcome={appView === "workspace-welcome"} />;
+}
+
+function AndroidLayout({ showWelcome }: { showWelcome: boolean }) {
+  const { isSidebarCollapsed, toggleSidebar } = useSidebar();
+  const drawerOpen = !isSidebarCollapsed;
+
+  return (
+    <div className="android-root relative flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
+      <div className="android-topbar flex shrink-0 items-center gap-1">
+        <SidebarToggleButton />
+        {!showWelcome && (
+          <div className="min-w-0 flex-1">
+            <EditorTabs />
+          </div>
+        )}
+      </div>
+      <div className="relative min-w-0 flex-1">
+        {showWelcome ? <WelcomeScreen /> : <EditorArea />}
+      </div>
+      {drawerOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar"
+          onClick={toggleSidebar}
+          className="android-backdrop"
+        />
+      )}
+      <div className="android-drawer" data-open={drawerOpen || undefined} inert={!drawerOpen}>
+        <Sidebar />
+      </div>
+    </div>
+  );
 }
 
 function WorkspaceLayout({ showWelcome }: { showWelcome: boolean }) {

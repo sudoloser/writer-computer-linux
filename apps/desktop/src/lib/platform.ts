@@ -8,3 +8,9 @@ export function detectPlatform(): Platform {
   if (/Win/i.test(ua)) return "windows";
   return "linux";
 }
+
+/** True inside an Android webview (Tauri mobile or plain browser). */
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}

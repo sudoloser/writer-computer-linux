@@ -1,0 +1,89 @@
+/* Experimental Android layout. Every rule below is scoped under
+   html[data-platform="android"] — set once in main.tsx when the UA
+   contains "Android" — so desktop rendering is untouched. See
+   SPECs/android-responsive-ui-spec.md. */
+
+html[data-platform="android"] .android-root {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+html[data-platform="android"] .android-topbar {
+  padding-left: max(4px, env(safe-area-inset-left));
+  padding-right: max(8px, env(safe-area-inset-right));
+}
+
+/* Sidebar overlay drawer. Kept mounted so it slides; `inert` (set in
+   app-layout.tsx) blocks interaction while closed. */
+html[data-platform="android"] .android-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(85vw, 340px);
+  z-index: 90;
+  background: var(--bg-base);
+  transform: translateX(-102%);
+  transition: transform 160ms ease-out;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+html[data-platform="android"] .android-drawer[data-open] {
+  transform: none;
+  box-shadow: 0 0 48px rgba(0, 0, 0, 0.35);
+}
+
+html[data-platform="android"] .android-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, 0.4);
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+/* Command palette becomes a top sheet instead of a centered card. */
+html[data-platform="android"] [cmdk-dialog] {
+  top: max(8px, env(safe-area-inset-top));
+  left: 12px;
+  right: 12px;
+  width: auto;
+  transform: none;
+  max-height: calc(88dvh - env(safe-area-inset-top));
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-platform="android"] [cmdk-list] {
+  max-height: 52dvh;
+}
+
+html[data-platform="android"] [cmdk-item] {
+  padding: 14px 12px;
+  font-size: 14px;
+}
+
+html[data-platform="android"] [cmdk-input] {
+  padding: 16px;
+  font-size: 16px;
+}
+
+/* Desktop top padding assumes a titlebar area; shrink it on phones. */
+html[data-platform="android"] .editor-pane {
+  padding-top: 3.5rem;
+}
+
+html[data-platform="android"] .settings-page {
+  padding-top: 3.5rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+/* 44px touch targets for chrome controls and tab buttons. */
+html[data-platform="android"] .android-topbar button,
+html[data-platform="android"] [data-tab-id] button {
+  min-width: 44px;
+  min-height: 44px;
+}

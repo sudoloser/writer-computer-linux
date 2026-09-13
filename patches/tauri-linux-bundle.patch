@@ -1,0 +1,54 @@
+diff --git a/apps/desktop/src-tauri/tauri.conf.json b/apps/desktop/src-tauri/tauri.conf.json
+index 6caffe4..9b96376 100644
+--- a/apps/desktop/src-tauri/tauri.conf.json
++++ b/apps/desktop/src-tauri/tauri.conf.json
+@@ -16,12 +16,7 @@
+         "title": "",
+         "titleBarStyle": "Overlay",
+         "hiddenTitle": true,
+-        "trafficLightPosition": { "x": 20, "y": 29 },
+-        "transparent": true,
+-        "windowEffects": {
+-          "effects": ["hudWindow"],
+-          "state": "followsWindowActiveState"
+-        },
++        "transparent": false,
+         "width": 1200,
+         "height": 800,
+         "minWidth": 800,
+@@ -39,7 +34,7 @@
+   },
+   "bundle": {
+     "active": true,
+-    "targets": "all",
++    "targets": ["deb", "rpm", "appimage"],
+     "createUpdaterArtifacts": true,
+     "macOS": {
+       "infoPlist": "Info.plist",
+@@ -61,7 +56,25 @@
+       "icons/128x128@2x.png",
+       "icons/icon.icns",
+       "icons/icon.ico"
+-    ]
++    ],
++    "category": "Utility",
++    "shortDescription": "A local-first markdown editor.",
++    "longDescription": "Writer is a local-first markdown editor for plain-text workflows such as Obsidian vaults, docs repos, and personal wikis.",
++    "linux": {
++      "maintainer": "Writer Computer <maintainers@example.com>",
++      "vendor": "Writer Computer",
++      "description": "A local-first markdown editor for plain-text workflows.",
++      "deb": {
++        "depends": [
++          "libwebkit2gtk-4.1-0",
++          "libgtk-3-0",
++          "libayatana-appindicator3-1 | libappindicator3-1"
++        ]
++      },
++      "rpm": {
++        "depends": ["webkit2gtk4.1", "gtk3", "libappindicator-gtk3"]
++      }
++    }
+   },
+   "plugins": {
+     "updater": {

@@ -213,3 +213,17 @@ index e68d432..aeb814a 100644
    const selected = await openDialog({
      directory: true,
      multiple: false,
+diff --git a/apps/desktop/src/lib/platform.ts b/apps/desktop/src/lib/platform.ts
+index 79a619c..74ea2ab 100644
+--- a/apps/desktop/src/lib/platform.ts
++++ b/apps/desktop/src/lib/platform.ts
+@@ -8,3 +8,9 @@ export function detectPlatform(): Platform {
+   if (/Win/i.test(ua)) return "windows";
+   return "linux";
+ }
++
++/** True inside an Android webview (Tauri mobile or plain browser). */
++export function isAndroid(): boolean {
++  if (typeof navigator === "undefined") return false;
++  return /Android/i.test(navigator.userAgent);
++}

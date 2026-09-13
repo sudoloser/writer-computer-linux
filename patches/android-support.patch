@@ -103,9 +103,9 @@ index 6caffe4..0c9a5d9 100644
 +    "category": "Utility",
 +    "shortDescription": "A local-first markdown editor.",
 +    "longDescription": "Writer is a local-first markdown editor for plain-text workflows such as Obsidian vaults, docs repos, and personal wikis."
-    },
-    "plugins": {
-      "updater": {
+   },
+   "plugins": {
+     "updater": {
 diff --git a/apps/desktop/src/components/app-layout.tsx b/apps/desktop/src/components/app-layout.tsx
 index 81e69b1..973ed54 100644
 --- a/apps/desktop/src/components/app-layout.tsx

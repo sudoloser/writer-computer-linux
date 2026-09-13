@@ -22,6 +22,7 @@ use state::AppState;
 use std::path::{Path, PathBuf};
 #[cfg(target_os = "macos")]
 use tauri::menu::MenuItem;
+#[cfg(desktop)]
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 #[cfg(target_os = "macos")]
 use tauri::RunEvent;

@@ -46,10 +46,18 @@ index cd286f7..edb9187 100644
  }
  
 diff --git a/apps/desktop/src-tauri/src/lib.rs b/apps/desktop/src-tauri/src/lib.rs
-index 30cc5cd..01c15a9 100644
+index 30cc5cd..c4931c4 100644
 --- a/apps/desktop/src-tauri/src/lib.rs
 +++ b/apps/desktop/src-tauri/src/lib.rs
-@@ -473,14 +473,16 @@ fn handle_single_instance(app: &tauri::AppHandle, argv: Vec<String>) {
+@@ -22,6 +22,7 @@ use state::AppState;
+ use std::path::{Path, PathBuf};
+ #[cfg(target_os = "macos")]
+ use tauri::menu::MenuItem;
++#[cfg(desktop)]
+ use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
+ #[cfg(target_os = "macos")]
+ use tauri::RunEvent;
+@@ -473,14 +474,16 @@ fn handle_single_instance(app: &tauri::AppHandle, argv: Vec<String>) {
  #[cfg_attr(mobile, tauri::mobile_entry_point)]
  pub fn run() {
      let builder = tauri::Builder::default()
@@ -69,7 +77,7 @@ index 30cc5cd..01c15a9 100644
      // Embed a W3C WebDriver server when built with `--features e2e` so the
      // local E2E suite can drive the WKWebView via `tauri-webdriver`. Never
      // enabled in release builds shipped to users.
-@@ -513,7 +515,7 @@ pub fn run() {
+@@ -513,7 +516,7 @@ pub fn run() {
              // On macOS, `open -a Writer /path` delivers the path via
              // RunEvent::Opened, not argv. On Linux/Windows the path
              // arrives through argv (or the single-instance plugin).

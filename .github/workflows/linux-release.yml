@@ -106,9 +106,6 @@ jobs:
             rust_target: aarch64-unknown-linux-gnu
             rust_host: --target aarch64-unknown-linux-gnu
     runs-on: ${{ matrix.runs_on }}
-    defaults:
-      run:
-        working-directory: src
     steps:
       - name: Check out fork (patches + script)
         uses: actions/checkout@v4
@@ -124,9 +121,10 @@ jobs:
           path: src
 
       - name: Apply Linux packaging patches
+        working-directory: ${{ github.workspace }}/src
         run: |
-          cp fork/scripts/patch-tauri-linux.py scripts/patch-tauri-linux.py
-          cp -r fork/patches patches
+          cp "${{ github.workspace }}/fork/scripts/patch-tauri-linux.py" scripts/patch-tauri-linux.py
+          cp -r "${{ github.workspace }}/fork/patches" patches
           python3 scripts/patch-tauri-linux.py \
             || git apply patches/tauri-linux-bundle.patch
 
@@ -151,16 +149,18 @@ jobs:
           cache: true
 
       - name: Install frontend dependencies
+        working-directory: ${{ github.workspace }}/src
         run: vp install
 
       - name: Build bundles (deb, rpm, appimage)
-        working-directory: src/apps/desktop
+        working-directory: ${{ github.workspace }}/src/apps/desktop
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: vp exec tauri build --bundles deb,rpm,appimage ${{ matrix.rust_host }}
 
       - name: Pack generic tarball for Arch and other distros
+        working-directory: ${{ github.workspace }}/src
         run: |
           VERSION="$(python3 -c "import json; print(json.load(open('apps/desktop/src-tauri/tauri.conf.json'))['version'])")"
           RELEASE_DIR="apps/desktop/src-tauri/target/${{ matrix.rust_target }}/release"

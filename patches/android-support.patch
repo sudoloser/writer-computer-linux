@@ -103,6 +103,113 @@ index 6caffe4..0c9a5d9 100644
 +    "category": "Utility",
 +    "shortDescription": "A local-first markdown editor.",
 +    "longDescription": "Writer is a local-first markdown editor for plain-text workflows such as Obsidian vaults, docs repos, and personal wikis."
-   },
-   "plugins": {
-     "updater": {
+    },
+    "plugins": {
+      "updater": {
+diff --git a/apps/desktop/src/components/app-layout.tsx b/apps/desktop/src/components/app-layout.tsx
+index 81e69b1..973ed54 100644
+--- a/apps/desktop/src/components/app-layout.tsx
++++ b/apps/desktop/src/components/app-layout.tsx
+@@ -8,6 +8,9 @@ import { WelcomeScreen } from "./welcome";
+ import { useSidebar } from "@/hooks/use-sidebar";
+ import { useWorkspaceChromeMode, useWorkspaceRoot } from "@/hooks/use-workspace";
+ import { resolveAppView } from "@/lib/app-view";
++import { isAndroid } from "@/lib/platform";
++
++const IS_ANDROID = isAndroid();
+ 
+ function clampSidebarWidth(width: number, maxSidebarWidth: number) {
+   return Math.max(220, Math.min(maxSidebarWidth, Math.round(width)));
+@@ -20,10 +23,77 @@ export function AppLayout() {
+   if (appView === "compact-file") {
+     return <CompactFileLayout />;
+   }
++  if (IS_ANDROID) {
++    return <AndroidLayout showWelcome={appView === "workspace-welcome"} />;
++  }
+ 
+   return <WorkspaceLayout showWelcome={appView === "workspace-welcome"} />;
+ }
+ 
++function AndroidLayout({ showWelcome }: { showWelcome: boolean }) {
++  const { isSidebarCollapsed, toggleSidebar } = useSidebar();
++  const drawerOpen = !isSidebarCollapsed;
++  const touchRef = useRef<{ x: number; y: number; time: number } | null>(null);
++
++  const handleTouchStart = useCallback((e: React.TouchEvent) => {
++    const touch = e.touches[0];
++    touchRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
++  }, []);
++
++  const handleTouchEnd = useCallback(
++    (e: React.TouchEvent) => {
++      const start = touchRef.current;
++      if (!start) return;
++      const touch = e.changedTouches[0];
++      const dx = touch.clientX - start.x;
++      const dy = touch.clientY - start.y;
++      const dt = Date.now() - start.time;
++      touchRef.current = null;
++
++      if (dt > 300 || Math.abs(dy) > Math.abs(dx)) return;
++
++      const edgeZone = 24;
++      if (!drawerOpen && start.x < edgeZone && dx > 40) {
++        toggleSidebar();
++      } else if (drawerOpen && dx < -40) {
++        toggleSidebar();
++      }
++    },
++    [drawerOpen, toggleSidebar],
++  );
++
++  return (
++    <div
++      className="android-root relative flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary"
++      onTouchStart={handleTouchStart}
++      onTouchEnd={handleTouchEnd}
++    >
++      <div className="android-topbar flex shrink-0 items-center gap-1">
++        <SidebarToggleButton />
++        {!showWelcome && (
++          <div className="min-w-0 flex-1">
++            <EditorTabs />
++          </div>
++        )}
++      </div>
++      <div className="relative min-w-0 flex-1">
++        {showWelcome ? <WelcomeScreen /> : <EditorArea />}
++      </div>
++      {drawerOpen && (
++        <button
++          type="button"
++          aria-label="Close sidebar"
++          onClick={toggleSidebar}
++          className="android-backdrop"
++        />
++      )}
++      <div className="android-drawer" data-open={drawerOpen || undefined} inert={!drawerOpen}>
++        <Sidebar />
++      </div>
++    </div>
++  );
++}
++
+ function WorkspaceLayout({ showWelcome }: { showWelcome: boolean }) {
+   const { isSidebarCollapsed, sidebarWidth, setSidebarWidth } = useSidebar();
+   const viewportWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
+diff --git a/apps/desktop/src/lib/tauri.ts b/apps/desktop/src/lib/tauri.ts
+index e68d432..aeb814a 100644
+--- a/apps/desktop/src/lib/tauri.ts
++++ b/apps/desktop/src/lib/tauri.ts
+@@ -112,6 +112,10 @@ export function restoreWorkspace(path: string): Promise<RestoreWorkspaceResponse
+ }
+ 
+ export async function pickWorkspace(): Promise<string | null> {
++  if (document.documentElement.dataset.platform === "android") {
++    const path = window.prompt("Folder path (e.g. /storage/emulated/0/Documents):");
++    return path && path.trim() ? path.trim() : null;
++  }
+   const selected = await openDialog({
+     directory: true,
+     multiple: false,

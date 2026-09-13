@@ -33,9 +33,41 @@ export function AppLayout() {
 function AndroidLayout({ showWelcome }: { showWelcome: boolean }) {
   const { isSidebarCollapsed, toggleSidebar } = useSidebar();
   const drawerOpen = !isSidebarCollapsed;
+  const touchRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const start = touchRef.current;
+      if (!start) return;
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - start.x;
+      const dy = touch.clientY - start.y;
+      const dt = Date.now() - start.time;
+      touchRef.current = null;
+
+      if (dt > 300 || Math.abs(dy) > Math.abs(dx)) return;
+
+      const edgeZone = 24;
+      if (!drawerOpen && start.x < edgeZone && dx > 40) {
+        toggleSidebar();
+      } else if (drawerOpen && dx < -40) {
+        toggleSidebar();
+      }
+    },
+    [drawerOpen, toggleSidebar],
+  );
 
   return (
-    <div className="android-root relative flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary">
+    <div
+      className="android-root relative flex h-screen w-screen flex-col overflow-hidden bg-bg text-text-primary"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <div className="android-topbar flex shrink-0 items-center gap-1">
         <SidebarToggleButton />
         {!showWelcome && (

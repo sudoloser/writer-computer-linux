@@ -112,6 +112,10 @@ export function restoreWorkspace(path: string): Promise<RestoreWorkspaceResponse
 }
 
 export async function pickWorkspace(): Promise<string | null> {
+  if (document.documentElement.dataset.platform === "android") {
+    const path = window.prompt("Folder path (e.g. /storage/emulated/0/Documents):");
+    return path && path.trim() ? path.trim() : null;
+  }
   const selected = await openDialog({
     directory: true,
     multiple: false,
